@@ -1,19 +1,7 @@
 ﻿namespace inversion_counting
 {
     public static class InputOutput
-    {
-        public static void PrintArray(int[,] array)
-        {
-            for (int i = 0; i < array.GetLength(0); i++)
-            {
-                for (int j = 0; j < array.GetLength(1); j++)
-                {
-                    Console.Write(array[i, j] + " ");
-                }
-
-                Console.WriteLine();
-            }
-        }
+    { 
         public static int[,] GetArrayFromFile(string fileName)
         {
             StreamReader streamReader = new StreamReader(fileName);
@@ -40,13 +28,15 @@
             return array;
         }
 
-        public static void WriteResult(int[,] array, string fileName)
+        public static void WriteResult(Dictionary<int, int> dictionary, int id ,string fileName)
         {
             StreamWriter streamWriter = new StreamWriter(fileName);
-            int length = array.GetLength(0);
-            for (int i = 0; i < length; i++)
+            int length = dictionary.Count;
+            streamWriter.WriteLine(id);
+            streamWriter.Flush();
+            foreach (var el in dictionary)
             {
-                streamWriter.WriteLine($"{array[i, 0]} {array[i, 1]}");
+                streamWriter.WriteLine($"{el.Key} {el.Value}");
                 streamWriter.Flush();
             }
         }
@@ -55,7 +45,7 @@
         {
             int usersAmount = array.GetLength(0);
             int userId;
-            Console.WriteLine("Enter user's id");
+            Console.Write("Enter user's id : ");
             userId = Convert.ToInt32(Console.ReadLine());
             if (userId < 1 || userId > usersAmount)
             {
@@ -65,15 +55,34 @@
             return userId;
         }
 
-        public static Dictionary<int, int> GetUserDictionary(int userId, int[,] array)
+        public static int[] GetArrayById(int id, int[,] array)
         {
-            int filmsAmount = array.GetLength(1);
-            Dictionary<int, int> userDictionary = new Dictionary<int, int>();
-            for (int i = 0; i < filmsAmount - 1; i++)
+            int length = array.GetLength(1) - 1;
+            int[] arr = new int[length];
+            for (int i = 0; i < length; i++)
             {
-                userDictionary[i] = array[userId - 1, i + 1];
+                arr[i] = array[id - 1, i + 1];
             }
-            return userDictionary;
+            return arr;
+        }
+
+        public static int[] GetArrayForCounting(int[] arr1, int[] arr2)
+        {
+            int n = arr1.Length;
+            var pos = new Dictionary<int, int>();
+
+            for (int i = 0; i < n; i++)
+            {
+                pos.Add(arr1[i], arr2[i]);
+            }
+
+            int[] resultArray = new int[n];
+
+            for (int i = 0; i < n; i++)
+            {
+                resultArray[i] = pos[i + 1];
+            }
+            return resultArray;
         }
     }
 
@@ -125,18 +134,66 @@
 
             int x = SortAndCountInv(left);
             int y = SortAndCountInv(right);
-            int z = Inversions.MergeAndCountSplitInv(A, left, right);
+            int z = MergeAndCountSplitInv(A, left, right);
 
             return x + y + z;
         }
     }
+
+    public static class Sorting
+    {
+       public static Dictionary<int, int> BubbleSort(Dictionary<int, int> dict)
+        {
+            var keys = new List<int>(dict.Keys);
+            var values = new List<int>(dict.Values);
+            int n = values.Count;
+
+            for (int i = 0; i < n - 1; i++)
+            {
+                for (int j = 0; j < n - i - 1; j++)
+                {
+                    if (values[j] > values[j + 1]) 
+                    {
+                        (values[j], values[j + 1]) = (values[j + 1], values[j]);
+                        (keys[j], keys[j + 1]) = (keys[j + 1], keys[j]);
+                    }
+                }
+            }
+            var sortedDict = new Dictionary<int, int>();
+            for (int i = 0; i < keys.Count; i++)
+            {
+                sortedDict[keys[i]] = values[i];
+            }
+            return sortedDict;
+        }
+    }
+
     public static class Program
     {
         public static void Main()
         {
-            int[,] array = InputOutput.GetArrayFromFile("/Users/front-end/RiderProjects/inversion-counting/inversion-counting/input_720_6.txt");
-            Dictionary<int, int> userDictionary = InputOutput.GetUserDictionary(InputOutput.GetUserId(array), array);
-            InputOutput.WriteResult(array, "result.txt");
+            int[,] array = InputOutput.GetArrayFromFile("./input_720_6.txt");
+            int id = InputOutput.GetUserId(array);
+            
+            int[] userArr = InputOutput.GetArrayById(id, array);
+             
+            var resultDict = new Dictionary<int, int>();
+            
+            for (int i = 0; i < array.GetLength(0); i++)
+            {
+                int currentId = array[i, 0];
+                if (currentId == id)
+                    continue;
+                int[] arr = InputOutput.GetArrayById(currentId, array);
+                int[] arrForCounting = InputOutput.GetArrayForCounting(userArr, arr);
+                
+                resultDict.Add(currentId, Inversions.SortAndCountInv(arrForCounting));
+            }
+            
+            resultDict = Sorting.BubbleSort(resultDict);
+            
+            InputOutput.WriteResult(resultDict, id, "result.txt");
+            
         }
     }
 
